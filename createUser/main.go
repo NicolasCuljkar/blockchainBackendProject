@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -25,15 +26,20 @@ type PlayersArray struct {
 	players []*Player
 }
 
-/*type PlayerResponse struct {
-	ID int `json:"ID"`
-}*/
-
 type Wallet struct {
+	PlayerId        int    `json:"player_id"`
 	WalletAddress   string `json:"wallet_address"`
 	CurrencyCode    string `json:"currency_code"`
 	CurrencyBalance string `json:"currency_balance"`
 }
+
+type WalletArray struct {
+	wallets []*Wallet
+}
+
+/*type PlayerResponse struct {
+	ID int `json:"ID"`
+}*/
 
 func CreatePlayer(w http.ResponseWriter, r *http.Request) {
 	body, err := io.ReadAll(r.Body)
@@ -104,17 +110,56 @@ func CreatePlayer(w http.ResponseWriter, r *http.Request) {
 	playerByte, err := json.MarshalIndent(tempArray.players, "", "")
 	ioutil.WriteFile("playerDB.json", playerByte, 0666)
 
-	/*idResp++
-	playerResponse := PlayerResponse{ID: idResp}
-	jsonResponse, err := json.Marshal(playerResponse)
+	walletBody, _ := json.Marshal(map[string]string{
+		"blockchain": "ethereum",
+		"pin_code":   player.Pin,
+	})
+
+	responseBodyWallet := bytes.NewBuffer(walletBody)
+	res, _ := http.Post("http://localhost:8001/wallet", "application/json", responseBodyWallet)
+
+	//
+
+	body1, err := io.ReadAll(res.Body)
+	fmt.Println(string(body1))
 	if err != nil {
-		log.Println("Failed to marshal response:", err)
-		w.WriteHeader(http.StatusInternalServerError)
+		log.Println("Failed to read body:", err)
+		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
-	w.Write(jsonResponse)*/
+	defer res.Body.Close()
+
+	wallet := Wallet{}
+	json.Unmarshal(body1, &wallet)
+
+	// On créé un nouveau player que l'on place dans le tableau players
+	newWallet := &Wallet{}
+	newWallet.WalletAddress = wallet.WalletAddress
+	newWallet.CurrencyCode = wallet.CurrencyCode
+	newWallet.CurrencyBalance = wallet.CurrencyBalance
+
+	file1, err := os.OpenFile("walletDB.json", os.O_RDWR, 0644)
+	fmt.Println(err)
+	defer file1.Close()
+
+	value1, err := ioutil.ReadAll(file1)
+	fmt.Println(err)
+
+	var tempArray1 WalletArray
+	err = json.Unmarshal(value1, &tempArray1.wallets)
+	fmt.Println(err)
+
+	newWallet.PlayerId = id
+
+	// On écrit dans playerDB.json
+	tempArray1.wallets = append(tempArray1.wallets, newWallet)
+	walletByte, err := json.MarshalIndent(tempArray1.wallets, "", "")
+	ioutil.WriteFile("walletDB.json", walletByte, 0666)
+
+	//
 
 	fmt.Printf("Username: `%s` Password: `%s` Pin: `%s`\n", player.Username, player.Password, player.Pin)
+	fmt.Printf("WalletAdress: `%s` CurrencyCode: `%s` Balance: `%s`\n", wallet.WalletAddress, wallet.CurrencyCode, wallet.CurrencyBalance)
 
 }
 
