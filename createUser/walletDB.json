@@ -52,5 +52,11 @@
 "wallet_address": "8613417vyg67",
 "currency_code": "ETH",
 "currency_balance": "1.08"
+},
+{
+"player_id": 10,
+"wallet_address": "8613417vyg67",
+"currency_code": "ETH",
+"currency_balance": "1.08"
 }
 ]
