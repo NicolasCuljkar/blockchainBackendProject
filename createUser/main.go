@@ -12,7 +12,7 @@ import (
 	"regexp"
 )
 
-//var idResp = 0
+var idResp = 0
 
 type Player struct {
 	ID       int    `json:"id"`
@@ -37,9 +37,17 @@ type WalletArray struct {
 	wallets []*Wallet
 }
 
-/*type PlayerResponse struct {
-	ID int `json:"ID"`
-}*/
+type PlayerResponse struct {
+	Player string `json:"Player"`
+	Pass   string `json:"Pass"`
+	Pin    string `json:"Pin"`
+}
+
+type WalletResponse struct {
+	Address         string `json:"Address"`
+	CurrencyCode    string `json:"CurrencyCode"`
+	CurrencyBalance string `json:"CurrencyBalance"`
+}
 
 func CreatePlayer(w http.ResponseWriter, r *http.Request) {
 	body, err := io.ReadAll(r.Body)
@@ -156,11 +164,29 @@ func CreatePlayer(w http.ResponseWriter, r *http.Request) {
 	walletByte, err := json.MarshalIndent(tempArray1.wallets, "", "")
 	ioutil.WriteFile("walletDB.json", walletByte, 0666)
 
-	//
-
 	fmt.Printf("Username: `%s` Password: `%s` Pin: `%s`\n", player.Username, player.Password, player.Pin)
 	fmt.Printf("WalletAdress: `%s` CurrencyCode: `%s` Balance: `%s`\n", wallet.WalletAddress, wallet.CurrencyCode, wallet.CurrencyBalance)
 
+	id++
+	playerResponse := PlayerResponse{Player: player.Username, Pass: player.Password, Pin: player.Pin}
+	jsonResponse, err := json.Marshal(playerResponse)
+	if err != nil {
+		log.Println("Failed to marshal response:", err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	w.Write(jsonResponse)
+
+	walletResponse := WalletResponse{Address: wallet.WalletAddress, CurrencyCode: wallet.CurrencyCode, CurrencyBalance: wallet.CurrencyBalance}
+	jsonWalletResponse, err := json.Marshal(walletResponse)
+	if err != nil {
+		log.Println("Failed to marshal response:", err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	w.Write(jsonWalletResponse)
 }
 
 func main() {
